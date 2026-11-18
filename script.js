@@ -1,42 +1,4 @@
-let toastTimeout;
-function showToast(msg) {
-  const t = document.getElementById('toastBox');
-  if (!t) return;
-  t.textContent = msg;
-  t.style.display = 'block';
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => t.style.display = 'none', 2600);
-}
-
-function filterPortal() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  document.querySelectorAll('#portalGrid .game-card').forEach(c => {
-    c.style.display = c.dataset.title.includes(q) ? 'flex' : 'none';
-  });
-}
-
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-function switchSocialRoom(room) {
-  document.getElementById('socialRoomTitle').textContent = room;
-  document.getElementById('socialFeed').innerHTML = `<div><strong style="color:#38bdf8;">[System]:</strong> Switched to <strong>${room}</strong>.</div>`;
-}
-
-function postSocialMsg() {
-  const user = document.getElementById('socialUser').value.trim() || (state.isOwner ? '👑 Jay (Owner)' : 'Guest');
-  const msgInput = document.getElementById('socialMsg');
-  const txt = msgInput.value.trim();
-  if (!txt) return;
-  msgInput.value = '';
-  const feed = document.getElementById('socialFeed');
-  const row = document.createElement('div');
-  row.innerHTML = `<strong style="color:#c8f53b;">${user}:</strong> `;
-  row.appendChild(document.createTextNode(txt));
-  feed.appendChild(row);
-  feed.scrollTop = feed.scrollHeight;
-}
-
+// ---------- GLOBAL STATE (INITIALIZED FIRST SO NO FUNCTION EVER CRASHES) ----------
 const WEAPONS = [
   { id: 'Fists', icon: '👊', cost: 0, dmg: 20, range: 55, color: '#38bdf8' },
   { id: 'Axe', icon: '🪓', cost: 150, dmg: 35, range: 70, color: '#22c55e' },
@@ -48,41 +10,14 @@ const WEAPONS = [
   { id: 'Legendary', icon: '👑', cost: 10000, dmg: 9999, range: 380, color: '#facc15' }
 ];
 
-const matchmaker = {
-  maxPlayersPerServer: 12,
-  servers: [
-    { id: 1, players: 3 }
-  ],
-  activeServerId: 1,
-  joinAvailableServer() {
-    let target = this.servers.find(s => s.players < this.maxPlayersPerServer);
-    if (!target) {
-      const nextId = this.servers.length + 1;
-      target = { id: nextId, players: 0 };
-      this.servers.push(target);
-    }
-    target.players++;
-    this.activeServerId = target.id;
-    this.updateServerHud();
-    return target;
-  },
-  simulateFullAndSpillover() {
-    const current = this.servers.find(s => s.id === this.activeServerId);
-    if (current) current.players = this.maxPlayersPerServer;
-    const nextServer = this.joinAvailableServer();
-    appendChat('Matchmaker', `Server #${nextServer.id - 1} hit 12/12 FULL! Auto-opened Server #${nextServer.id} (${nextServer.players}/12).`, '#c8f53b');
-    showToast(`🌐 Server #${nextServer.id - 1} Full → Moved to Server #${nextServer.id}!`);
-  },
-  updateServerHud() {
-    const srv = this.servers.find(s => s.id === this.activeServerId) || this.servers;
-    const el = document.getElementById('serverHud');
-    if (el) el.textContent = `🌐 Server #${srv.id} (${srv.players}/${this.maxPlayersPerServer})`;
-  }
-};
-
-function simulateFullServerSpillover() {
-  matchmaker.simulateFullAndSpillover();
-}
+const MB_BLOCKS = [
+  { id: 'Grass', color: '#22c55e', icon: '🟩' },
+  { id: 'Stone', color: '#64748b', icon: '🪨' },
+  { id: 'Wood', color: '#b45309', icon: '🪵' },
+  { id: 'Diamond', color: '#38bdf8', icon: '💎' },
+  { id: 'Neon', color: '#c8f53b', icon: '⚡' },
+  { id: 'Break', color: '#ef4444', icon: '⛏️' }
+];
 
 const state = {
   running: false,
@@ -110,6 +45,96 @@ const state = {
 };
 localStorage.setItem('jay_uid', state.userId);
 
+const mbState = {
+  running: false,
+  selectedBlock: 0,
+  worldBlocks: {},
+  player: { x: 200, y: 200 },
+  friends: [{ name: 'Friend_Alex', x: 320, y: 240 }]
+};
+
+const matchmaker = {
+  maxPlayersPerServer: 12,
+  servers: [{ id: 1, players: 3 }],
+  activeServerId: 1,
+  joinAvailableServer() {
+    let target = this.servers.find(s => s.players < this.maxPlayersPerServer);
+    if (!target) {
+      const nextId = this.servers.length + 1;
+      target = { id: nextId, players: 0 };
+      this.servers.push(target);
+    }
+    target.players++;
+    this.activeServerId = target.id;
+    this.updateServerHud();
+    return target;
+  },
+  simulateFullAndSpillover() {
+    const current = this.servers.find(s => s.id === this.activeServerId);
+    if (current) current.players = this.maxPlayersPerServer;
+    const nextServer = this.joinAvailableServer();
+    appendChat('Matchmaker', `Server #${nextServer.id - 1} hit 12/12 FULL! Auto-opened Server #${nextServer.id} (${nextServer.players}/12).`, '#c8f53b');
+    showToast(`🌐 Server #${nextServer.id - 1} Full → Moved to Server #${nextServer.id}!`);
+  },
+  updateServerHud() {
+    const srv = this.servers.find(s => s.id === this.activeServerId) || this.servers[0];
+    const el = document.getElementById('serverHud');
+    if (el) el.textContent = `🌐 Server #${srv.id} (${srv.players}/${this.maxPlayersPerServer})`;
+  }
+};
+
+function simulateFullServerSpillover() {
+  matchmaker.simulateFullAndSpillover();
+}
+
+// ---------- UI & PORTAL HELPERS ----------
+let toastTimeout;
+function showToast(msg) {
+  const t = document.getElementById('toastBox');
+  if (!t) return;
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => { t.style.display = 'none'; }, 2600);
+}
+
+function filterPortal() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#portalGrid .game-card').forEach(c => {
+    c.style.display = c.dataset.title.includes(q) ? 'flex' : 'none';
+  });
+}
+
+function openModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.classList.add('open');
+}
+
+function closeModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.classList.remove('open');
+}
+
+function switchSocialRoom(room) {
+  document.getElementById('socialRoomTitle').textContent = room;
+  document.getElementById('socialFeed').innerHTML = `<div><strong style="color:#38bdf8;">[System]:</strong> Switched to <strong>${room}</strong>.</div>`;
+}
+
+function postSocialMsg() {
+  const user = document.getElementById('socialUser').value.trim() || (state.isOwner ? '👑 Jay (Owner)' : 'Guest');
+  const msgInput = document.getElementById('socialMsg');
+  const txt = msgInput.value.trim();
+  if (!txt) return;
+  msgInput.value = '';
+  const feed = document.getElementById('socialFeed');
+  const row = document.createElement('div');
+  row.innerHTML = `<strong style="color:#c8f53b;">${user}:</strong> `;
+  row.appendChild(document.createTextNode(txt));
+  feed.appendChild(row);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+// ---------- TYCOON PADS & HUD ----------
 const PADS = [
   { id: 'dropper', label: 'Buy Dropper', x: 90, y: 290, w: 90, h: 48, getCost: () => state.dropperLevel * 100, color: '#22c55e' },
   { id: 'upgrader', label: 'Laser Upgrader', x: 90, y: 360, w: 90, h: 48, getCost: () => (state.upgraderLevel + 1) * 250, color: '#38bdf8' },
@@ -132,6 +157,7 @@ function updateHud() {
 
 function renderHotbar() {
   const hb = document.getElementById('hotbar');
+  if (!hb) return;
   hb.innerHTML = '';
   WEAPONS.forEach((w, idx) => {
     const owned = state.ownedWeapons.includes(w.id);
@@ -152,8 +178,10 @@ function unlockAllWeapons() {
   showToast('👑 All 8 Weapons & Abilities Unlocked!');
 }
 
+// ---------- UNFILTERED CHAT & SILENT OWNER PANEL ----------
 function appendChat(sender, text, color = '#f8fafc') {
   const feed = document.getElementById('chatFeed');
+  if (!feed) return;
   const line = document.createElement('div');
   line.className = 'chat-msg';
   line.style.color = color;
@@ -225,24 +253,22 @@ function adminAction(type) {
   } else if (type === 'mute') {
     if (state.mutedUsers.includes(target)) {
       state.mutedUsers = state.mutedUsers.filter(u => u !== target);
-      appendChat('System', `${target} was unmuted.`, '#38bdf8');
-    } else {
-      state.mutedUsers.push(target);
-      appendChat('System', `${target} was muted by Owner Jay.`, '#fbbf24');
-    }
-  }
-  document.getElementById('banListDisplay').textContent =
-    `Banned: ${state.bannedUsers.length ? state.bannedUsers.join(', ') : 'None'} | Muted: ${state.mutedUsers.length ? state.mutedUsers.join(', ') : 'None'}`;
+appendChat('System', ${target} was unmuted., '#38bdf8');
+} else {
+state.mutedUsers.push(target);
+appendChat('System', ${target} was muted by Owner Jay., '#fbbf24');
 }
-
+}
+document.getElementById('banListDisplay').textContent =
+Banned: ${state.bannedUsers.length ? state.bannedUsers.join(', ') : 'None'} | Muted: ${state.mutedUsers.length ? state.mutedUsers.join(', ') : 'None'};
+}
 function togglePublicExecutor() {
-  state.publicExecEnabled = !state.publicExecEnabled;
-  document.getElementById('togglePublicExecBtn').textContent = 'Public Executor: ' + (state.publicExecEnabled ? 'ON' : 'OFF');
-  showToast('Public Lua Executor is now ' + (state.publicExecEnabled ? 'ENABLED' : 'DISABLED'));
+state.publicExecEnabled = !state.publicExecEnabled;
+document.getElementById('togglePublicExecBtn').textContent = 'Public Executor: ' + (state.publicExecEnabled ? 'ON' : 'OFF');
+showToast('Public Lua Executor is now ' + (state.publicExecEnabled ? 'ENABLED' : 'DISABLED'));
 }
-
 function toggleVC() {
-  state.vcOn = !state.vcOn;
+state.vcOn = !state.vcOn;
 const btn = document.getElementById('vcBtn');
 btn.textContent = state.vcOn ? '🎙️ VC ON' : '🎙️ VC OFF';
 btn.classList.toggle('active', state.vcOn);
@@ -337,26 +363,24 @@ const line = rawLine.trim();
 if (!line || line.startsWith('--')) return;
 if (line.includes('UnlockAllWeapons')) { unlockAllWeapons(); ran = true; }
 const wsMatch = line.match(/WalkSpeed\s*=\s*([0-9.]+)/i);
-if (wsMatch) { state.player.speed = parseFloat(wsMatch) || 4.5; ran = true; }
+if (wsMatch) { state.player.speed = parseFloat(wsMatch[1]) || 4.5; ran = true; }
 const cashMatch = line.match(/Cash.Value\s*=\s*([0-9.]+)/i);
-if (cashMatch) { state.cash = parseFloat(cashMatch) || 0; updateHud(); ran = true; }
+if (cashMatch) { state.cash = parseFloat(cashMatch[1]) || 0; updateHud(); ran = true; }
 const rebMatch = line.match(/Rebirths.Value\s*=\s*([0-9.]+)/i);
-if (rebMatch) { state.rebirths = parseInt(rebMatch, 10) || 0; updateHud(); ran = true; }
+if (rebMatch) { state.rebirths = parseInt(rebMatch[1], 10) || 0; updateHud(); ran = true; }
 const printMatch = line.match(/print\s*\s*["'](.+?)["']\s*/i);
-if (printMatch) { showToast(printMatch); ran = true; }
+if (printMatch) { showToast(printMatch[1]); ran = true; }
 });
 if (ran) showToast('⚡ Lua / Luau Script Executed!');
 else showToast('⚡ Script Processed!');
 }
 // ---------- SUPER POWER TYCOON: REBORN ENGINE ----------
-const canvas = document.getElementById('tycoonCanvas');
-const ctx = canvas.getContext('2d');
 const keys = {};
 let joyVec = { x: 0, y: 0 };
 let padCooldown = 0;
 let spawnTimer = 0;
 window.addEventListener('keydown', e => {
-if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
 keys[e.key.toLowerCase()] = true;
 if (e.key >= '1' && e.key <= '8') {
 const w = WEAPONS[Number(e.key) - 1];
@@ -365,13 +389,14 @@ if (w && state.ownedWeapons.includes(w.id)) { state.equipped = w.id; renderHotba
 if (e.code === 'Space') useWeapon();
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+function initControls() {
 const stick = document.getElementById('touchStick');
 const knob = document.getElementById('stickKnob');
-if (stick) {
+if (stick && knob) {
 stick.addEventListener('touchmove', e => {
 e.preventDefault();
 const rect = stick.getBoundingClientRect();
-const touch = e.touches;
+const touch = e.touches[0];
 const dx = touch.clientX - (rect.left + rect.width / 2);
 const dy = touch.clientY - (rect.top + rect.height / 2);
 const dist = Math.min(34, Math.hypot(dx, dy));
@@ -386,6 +411,7 @@ knob.style.left = '29px'; knob.style.top = '29px';
 joyVec = { x: 0, y: 0 };
 });
 }
+const canvas = document.getElementById('tycoonCanvas');
 if (canvas) {
 canvas.addEventListener('mousedown', (e) => {
 const rect = canvas.getBoundingClientRect();
@@ -397,8 +423,9 @@ state.player.facingY = Math.sin(ang);
 useWeapon();
 });
 }
+}
 function useWeapon() {
-const w = WEAPONS.find(item => item.id === state.equipped) || WEAPONS;
+const w = WEAPONS.find(item => item.id === state.equipped) || WEAPONS[0];
 const p = state.player;
 state.effects.push({
 type: w.id, x: p.x, y: p.y, fx: p.facingX, fy: p.facingY,
@@ -447,6 +474,7 @@ document.getElementById('portalView').style.display = 'block';
 }
 function resizeCanvas() {
 const wrap = document.getElementById('arenaWrap');
+const canvas = document.getElementById('tycoonCanvas');
 if (!wrap || !canvas) return;
 canvas.width = Math.max(320, wrap.clientWidth);
 canvas.height = Math.max(400, wrap.clientHeight);
@@ -454,6 +482,9 @@ canvas.height = Math.max(400, wrap.clientHeight);
 window.addEventListener('resize', resizeCanvas);
 function loop() {
 if (!state.running) return;
+const canvas = document.getElementById('tycoonCanvas');
+if (!canvas) return;
+const ctx = canvas.getContext('2d');
 ctx.clearRect(0, 0, canvas.width, canvas.height);
 ctx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
 ctx.lineWidth = 1;
@@ -572,22 +603,7 @@ if (ef.life <= 0) state.effects.splice(i, 1);
 }
 requestAnimationFrame(loop);
 }
-// ---------- MINEBLOX VOXEL SANDBOX ENGINE + CUSTOM LOADING SCREEN ----------
-const MB_BLOCKS = [
-{ id: 'Grass', color: '#22c55e', icon: '🟩' },
-{ id: 'Stone', color: '#64748b', icon: '🪨' },
-{ id: 'Wood', color: '#b45309', icon: '🪵' },
-{ id: 'Diamond', color: '#38bdf8', icon: '💎' },
-{ id: 'Neon', color: '#c8f53b', icon: '⚡' },
-{ id: 'Break', color: '#ef4444', icon: '⛏️' }
-];
-const mbState = {
-running: false,
-selectedBlock: 0,
-worldBlocks: {},
-player: { x: 200, y: 200 },
-friends: [{ name: 'Friend_Alex', x: 320, y: 240 }]
-};
+// ---------- MINEBLOX SANDBOX ENGINE ----------
 function launchMineblox() {
 document.getElementById('portalView').style.display = 'none';
 document.getElementById('gameView').style.display = 'none';
@@ -684,3 +700,4 @@ requestAnimationFrame(mbLoop);
 requestAnimationFrame(mbLoop);
 }
 }
+initControls();
