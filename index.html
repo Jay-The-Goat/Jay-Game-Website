@@ -9,7 +9,7 @@
 <body>
 
   <header>
-    <div class="brand" onclick="exitGame()">
+    <div class="brand" onclick="exitAllGames()">
       <div class="pixel-logo">
         <svg class="crown-svg" viewBox="0 0 16 10" fill="none">
           <path d="M7 0H9V2H10V4H13V2H15V7H1V2H3V4H6V2H7V0ZM1 8H15V10H1V8Z" fill="#38bdf8"/>
@@ -41,7 +41,7 @@
         </div>
       </div>
 
-      <div class="game-card playable" data-title="mineblox minecraft" onclick="window.open('https://minecraft.net', '_blank')">
+      <div class="game-card playable" data-title="mineblox" onclick="launchMineblox()">
         <div class="thumb-box" style="background: linear-gradient(135deg, #16a34a, #0284c7);">⛏️</div>
         <div class="game-info">
           <h3>MINEBLOX</h3>
@@ -95,7 +95,7 @@
           <div style="font-size:11px; color:#64748b; font-weight:800;">IN-SITE CHANNELS</div>
           <button class="cmd-btn blue" style="text-align:left;" onclick="switchSocialRoom('#general-chat')"># general-chat</button>
           <button class="cmd-btn" style="text-align:left;" onclick="switchSocialRoom('#tycoon-squad')"># tycoon-squad</button>
-          <button class="cmd-btn" style="text-align:left;" onclick="switchSocialRoom('#lua-scripts')"># lua-scripts</button>
+          <button class="cmd-btn" style="text-align:left;" onclick="switchSocialRoom('#mineblox-friends')"># mineblox-friends</button>
           <div style="font-size:11px; color:#64748b; font-weight:800; margin-top:10px;">OFFICIAL WEB APPS</div>
           <a href="https://discord.com" target="_blank" rel="noopener noreferrer" class="cmd-btn" style="text-decoration:none; background:#5865F2; text-align:center;">Discord Web ↗</a>
           <a href="https://snapchat.com" target="_blank" rel="noopener noreferrer" class="cmd-btn" style="text-decoration:none; background:#facc15; color:#050a18; text-align:center;">Snapchat Web ↗</a>
@@ -116,15 +116,17 @@
     </div>
   </div>
 
-  <!-- Super Power Tycoon: Reborn Game View -->
+  <!-- SUPER POWER TYCOON: REBORN VIEW -->
   <div id="gameView">
     <div class="game-topbar">
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button class="top-btn" onclick="exitGame()">⬅ Portal</button>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button class="top-btn" onclick="exitAllGames()">⬅ Portal</button>
         <div class="stat-pill" id="cashHud">$100</div>
         <div class="stat-pill" id="rebirthHud" style="color:#38bdf8;">Rebirths: 0</div>
+        <div class="stat-pill" id="serverHud" style="color:#a855f7; border-color:#a855f7;">🌐 Server #1 (3/12)</div>
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
+        <button class="top-btn" onclick="simulateFullServerSpillover()" title="Test full server auto-spillover">⚡ Simulate Full Server</button>
         <button class="top-btn accent" id="execOpenBtn" onclick="openExecutor()">&lt;/&gt; Lua Executor</button>
         <button class="top-btn owner-btn" id="ownerOpenBtn" onclick="openOwnerPanel()">👑 Owner Panel</button>
       </div>
@@ -135,7 +137,7 @@
 
       <div class="chat-box">
         <div class="chat-messages" id="chatFeed">
-          <div class="chat-msg" style="color:#38bdf8;"><strong>[System]:</strong> Welcome to Super Power Tycoon: Reborn!</div>
+          <div class="chat-msg" style="color:#38bdf8;"><strong>[System]:</strong> Connected to Active Server! Step on glowing pads to build & unlock weapons.</div>
         </div>
         <div class="chat-input-row">
           <input type="text" id="chatInput" placeholder="Chat here..." onkeydown="if(event.key==='Enter') sendChat()" />
@@ -153,55 +155,9 @@
     </div>
   </div>
 
-  <!-- Owner Passcode Modal -->
-  <div class="overlay-modal" id="passModal">
-    <div class="panel-card" style="max-width:360px;">
-      <div class="panel-header">
-        <h3>👑 Owner Verification</h3>
-        <button class="close-x" onclick="closeModal('passModal')">✕</button>
-      </div>
-      <p style="font-size:13px; color:#94a3b8; margin-bottom:10px;">Enter Owner Passcode to unlock Jay Admin Panel v2:</p>
-      <input type="password" id="ownerPassInput" class="field-input" placeholder="Enter passcode..." onkeydown="if(event.key==='Enter') verifyOwner()" />
-      <button class="cmd-btn lime" style="width:100%;" onclick="verifyOwner()">Unlock Owner Panel</button>
-    </div>
-  </div>
-
-  <!-- Owner Admin Panel Modal -->
-  <div class="overlay-modal" id="ownerModal">
-    <div class="panel-card">
-      <div class="panel-header">
-        <h3>👑 JAY OWNER PANEL v2</h3>
-        <button class="close-x" onclick="closeModal('ownerModal')">✕</button>
-      </div>
-      <input type="text" id="targetPlayerInput" class="field-input" placeholder="Target Username (e.g., ArenaBot_1)..." />
-      <div class="btn-row">
-Kick
-Ban
-Unban
-Mute / Unmute
-
-
-+ $50K Cash
-+1 Rebirth
-Unlock All 8 Weapons
-Public Executor: ON
-
-
-Banned: None | Muted: None
-
-
-⚡ Lua / Luau Script Executor
-✕
-
-
-My Saved Scripts
-Public Community Scripts
-
-
-
-
-
-▶ Execute
-💾 Save Script
-Clear
-Make Public
+  <!-- MINEBLOX CUSTOM LOADING SCREEN + VOXEL SANDBOX VIEW -->
+  <div id="minebloxView" style="display:none; position:fixed; inset:0; background:#040a14; z-index:210; flex-direction:column;">
+    <!-- Custom Animated Mineblox Loading Screen -->
+    <div id="mbLoadingScreen" style="position:absolute; inset:0; background:radial-gradient(circle at center, #0c2b1e 0%, #040a14 100%); z-index:30; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center;">
+      <div style="font-size:56px; margin-bottom:12px;">⛏️</div>
+      <h1 style="font-size:32px; font-weight:900; letter-spacing:3px; color:#c8f53b; margin-bottom:8px;">MINEBLOX ENGINE v2.4</h1>
