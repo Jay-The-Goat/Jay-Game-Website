@@ -48,6 +48,42 @@ const WEAPONS = [
   { id: 'Legendary', icon: '👑', cost: 10000, dmg: 9999, range: 380, color: '#facc15' }
 ];
 
+const matchmaker = {
+  maxPlayersPerServer: 12,
+  servers: [
+    { id: 1, players: 3 }
+  ],
+  activeServerId: 1,
+  joinAvailableServer() {
+    let target = this.servers.find(s => s.players < this.maxPlayersPerServer);
+    if (!target) {
+      const nextId = this.servers.length + 1;
+      target = { id: nextId, players: 0 };
+      this.servers.push(target);
+    }
+    target.players++;
+    this.activeServerId = target.id;
+    this.updateServerHud();
+    return target;
+  },
+  simulateFullAndSpillover() {
+    const current = this.servers.find(s => s.id === this.activeServerId);
+    if (current) current.players = this.maxPlayersPerServer;
+    const nextServer = this.joinAvailableServer();
+    appendChat('Matchmaker', `Server #${nextServer.id - 1} hit 12/12 FULL! Auto-opened Server #${nextServer.id} (${nextServer.players}/12).`, '#c8f53b');
+    showToast(`🌐 Server #${nextServer.id - 1} Full → Moved to Server #${nextServer.id}!`);
+  },
+  updateServerHud() {
+    const srv = this.servers.find(s => s.id === this.activeServerId) || this.servers;
+    const el = document.getElementById('serverHud');
+    if (el) el.textContent = `🌐 Server #${srv.id} (${srv.players}/${this.maxPlayersPerServer})`;
+  }
+};
+
+function simulateFullServerSpillover() {
+  matchmaker.simulateFullAndSpillover();
+}
+
 const state = {
   running: false,
   isOwner: false,
@@ -134,9 +170,8 @@ function sendChat() {
   if (!raw) return;
 
   if (raw === '/Jay Admin Panel v2') {
-    if (state.isOwner) {
-      openOwnerPanel();
-    } else {
+    if (state.isOwner) openOwnerPanel();
+    else {
       openModal('passModal');
       setTimeout(() => document.getElementById('ownerPassInput').focus(), 100);
     }
@@ -168,10 +203,7 @@ function verifyOwner() {
   }
 }
 
-function openOwnerPanel() {
-  if (!state.isOwner) return;
-  openModal('ownerModal');
-}
+function openOwnerPanel() { if (state.isOwner) openModal('ownerModal'); }
 
 function adminAction(type) {
   if (!state.isOwner) return;
@@ -211,51 +243,41 @@ function togglePublicExecutor() {
 
 function toggleVC() {
   state.vcOn = !state.vcOn;
-  const btn = document.getElementById('vcBtn');
-  btn.textContent = state.vcOn ? '🎙️ VC ON' : '🎙️ VC OFF';
-  btn.classList.toggle('active', state.vcOn);
-  showToast(state.vcOn ? '🎙️ Voice Chat Mic Active' : '🎙️ Voice Chat Muted');
+const btn = document.getElementById('vcBtn');
+btn.textContent = state.vcOn ? '🎙️ VC ON' : '🎙️ VC OFF';
+btn.classList.toggle('active', state.vcOn);
+showToast(state.vcOn ? '🎙️ Voice Chat Mic Active' : '🎙️ Voice Chat Muted');
 }
-
+// ---------- LUA EXECUTOR ----------
 let currentExecTab = 'mine';
-
 function openExecutor() {
-  if (!state.isOwner && !state.publicExecEnabled) {
-    return showToast('🔒 Script Executor is currently restricted by Owner Jay.');
-  }
-  openModal('execModal');
-  renderSavedScripts();
+if (!state.isOwner && !state.publicExecEnabled) {
+return showToast('🔒 Script Executor is currently restricted by Owner Jay.');
 }
-
+openModal('execModal');
+renderSavedScripts();
+}
 function switchExecTab(tab) {
-  currentExecTab = tab;
-  document.getElementById('tabMyScripts').className = tab === 'mine' ? 'cmd-btn blue' : 'cmd-btn';
-  document.getElementById('tabPublicScripts').className = tab === 'public' ? 'cmd-btn blue' : 'cmd-btn';
-  renderSavedScripts();
+currentExecTab = tab;
+document.getElementById('tabMyScripts').className = tab === 'mine' ? 'cmd-btn blue' : 'cmd-btn';
+document.getElementById('tabPublicScripts').className = tab === 'public' ? 'cmd-btn blue' : 'cmd-btn';
+renderSavedScripts();
 }
-
 function getStoredScripts() {
-  try { return JSON.parse(localStorage.getItem('jay_lua_scripts_v1') || '[]'); }
-  catch { return []; }
+try { return JSON.parse(localStorage.getItem('jay_lua_scripts_v1') || '[]'); }
+catch { return []; }
 }
-
-function setStoredScripts(list) {
-  localStorage.setItem('jay_lua_scripts_v1', JSON.stringify(list));
-}
-
+function setStoredScripts(list) { localStorage.setItem('jay_lua_scripts_v1', JSON.stringify(list)); }
 function saveLuaScript() {
-  const title = document.getElementById('scriptTitleInput').value.trim() || 'Untitled Lua Script';
-  const code = document.getElementById('luaCodeInput').value.trim();
-  const isPublic = document.getElementById('isPublicCheck').checked;
+const title = document.getElementById('scriptTitleInput').value.trim() || 'Untitled Lua Script';
+const code = document.getElementById('luaCodeInput').value.trim();
+const isPublic = document.getElementById('isPublicCheck').checked;
 if (!code) return showToast('Write or paste a Lua script first!');
 const list = getStoredScripts();
 list.unshift({
-id: Date.now(),
-ownerId: state.userId,
+id: Date.now(), ownerId: state.userId,
 author: state.isOwner ? 'Jay (Owner)' : state.username,
-title,
-code,
-isPublic
+title, code, isPublic
 });
 setStoredScripts(list);
 document.getElementById('scriptTitleInput').value = '';
@@ -269,13 +291,11 @@ if (!item) return;
 item.isPublic = !item.isPublic;
 setStoredScripts(list);
 renderSavedScripts();
-showToast(Script is now ${item.isPublic ? 'PUBLIC' : 'PRIVATE'});
 }
 function deleteScript(id) {
 const list = getStoredScripts().filter(s => !(s.id === id && s.ownerId === state.userId));
 setStoredScripts(list);
 renderSavedScripts();
-showToast('🗑️ Script deleted');
 }
 function renderSavedScripts() {
 const container = document.getElementById('scriptsListContainer');
@@ -284,7 +304,7 @@ const visible = currentExecTab === 'mine'
 ? all.filter(s => s.ownerId === state.userId)
 : all.filter(s => s.isPublic === true);
 if (!visible.length) {
-container.innerHTML = <p style="font-size:12px; color:#64748b;">No ${currentExecTab === 'mine' ? 'saved private/personal' : 'public'} scripts yet.</p>;
+container.innerHTML = <p style="font-size:12px; color:#64748b;">No ${currentExecTab === 'mine' ? 'saved private' : 'public'} scripts yet.</p>;
 return;
 }
 container.innerHTML = '';
@@ -292,7 +312,7 @@ visible.forEach(s => {
 const isMine = s.ownerId === state.userId;
 const div = document.createElement('div');
 div.className = 'script-item';
-div.innerHTML = <div class="script-top"> <strong style="font-size:13px; color:#f8fafc;">${s.title} <span style="color:#64748b; font-weight:500;">by ${s.author}</span></strong> <span class="vis-tag ${s.isPublic ? 'public' : ''}">${s.isPublic ? '🌐 PUBLIC' : '🔒 PRIVATE'}</span> </div> <div class="btn-row" style="margin-bottom:0;"> <button class="cmd-btn lime" onclick="executeLuaById(${s.id})">▶ Execute</button> <button class="cmd-btn" onclick="loadScriptToEditor(${s.id})">Load</button> ${isMine ?${s.isPublic ? 'Make Private' : 'Make Public'}: ''} ${isMine ?Delete: ''} </div>;
+div.innerHTML = <div class="script-top"> <strong style="font-size:13px; color:#f8fafc;">${s.title} <span style="color:#64748b;">by ${s.author}</span></strong> <span class="vis-tag ${s.isPublic ? 'public' : ''}">${s.isPublic ? '🌐 PUBLIC' : '🔒 PRIVATE'}</span> </div> <div class="btn-row" style="margin-bottom:0;"> <button class="cmd-btn lime" onclick="executeLuaById(${s.id})">▶ Execute</button> <button class="cmd-btn" onclick="loadScriptToEditor(${s.id})">Load</button> ${isMine ?${s.isPublic ? 'Make Private' : 'Make Public'}: ''} ${isMine ?Delete: ''} </div>;
 container.appendChild(div);
 });
 }
@@ -317,17 +337,18 @@ const line = rawLine.trim();
 if (!line || line.startsWith('--')) return;
 if (line.includes('UnlockAllWeapons')) { unlockAllWeapons(); ran = true; }
 const wsMatch = line.match(/WalkSpeed\s*=\s*([0-9.]+)/i);
-if (wsMatch) { state.player.speed = parseFloat(wsMatch[1]) || 4.5; ran = true; }
+if (wsMatch) { state.player.speed = parseFloat(wsMatch) || 4.5; ran = true; }
 const cashMatch = line.match(/Cash.Value\s*=\s*([0-9.]+)/i);
-if (cashMatch) { state.cash = parseFloat(cashMatch[1]) || 0; updateHud(); ran = true; }
+if (cashMatch) { state.cash = parseFloat(cashMatch) || 0; updateHud(); ran = true; }
 const rebMatch = line.match(/Rebirths.Value\s*=\s*([0-9.]+)/i);
-if (rebMatch) { state.rebirths = parseInt(rebMatch[1], 10) || 0; updateHud(); ran = true; }
+if (rebMatch) { state.rebirths = parseInt(rebMatch, 10) || 0; updateHud(); ran = true; }
 const printMatch = line.match(/print\s*\s*["'](.+?)["']\s*/i);
-if (printMatch) { showToast(printMatch[1]); ran = true; }
+if (printMatch) { showToast(printMatch); ran = true; }
 });
 if (ran) showToast('⚡ Lua / Luau Script Executed!');
-else showToast('⚡ Script Processed (Try WalkSpeed, Cash.Value, or UnlockAllWeapons())');
+else showToast('⚡ Script Processed!');
 }
+// ---------- SUPER POWER TYCOON: REBORN ENGINE ----------
 const canvas = document.getElementById('tycoonCanvas');
 const ctx = canvas.getContext('2d');
 const keys = {};
@@ -346,10 +367,11 @@ if (e.code === 'Space') useWeapon();
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 const stick = document.getElementById('touchStick');
 const knob = document.getElementById('stickKnob');
+if (stick) {
 stick.addEventListener('touchmove', e => {
 e.preventDefault();
 const rect = stick.getBoundingClientRect();
-const touch = e.touches[0];
+const touch = e.touches;
 const dx = touch.clientX - (rect.left + rect.width / 2);
 const dy = touch.clientY - (rect.top + rect.height / 2);
 const dist = Math.min(34, Math.hypot(dx, dy));
@@ -363,6 +385,8 @@ stick.addEventListener('touchend', () => {
 knob.style.left = '29px'; knob.style.top = '29px';
 joyVec = { x: 0, y: 0 };
 });
+}
+if (canvas) {
 canvas.addEventListener('mousedown', (e) => {
 const rect = canvas.getBoundingClientRect();
 const mx = e.clientX - rect.left;
@@ -372,8 +396,9 @@ state.player.facingX = Math.cos(ang);
 state.player.facingY = Math.sin(ang);
 useWeapon();
 });
+}
 function useWeapon() {
-const w = WEAPONS.find(item => item.id === state.equipped) || WEAPONS[0];
+const w = WEAPONS.find(item => item.id === state.equipped) || WEAPONS;
 const p = state.player;
 state.effects.push({
 type: w.id, x: p.x, y: p.y, fx: p.facingX, fy: p.facingY,
@@ -400,7 +425,11 @@ setTimeout(() => { bot.hp = bot.maxHp; }, 3500);
 }
 function launchTycoon() {
 document.getElementById('portalView').style.display = 'none';
-document.getElementById('gameView').classList.add('active');
+document.getElementById('minebloxView').style.display = 'none';
+const gv = document.getElementById('gameView');
+gv.style.display = 'flex';
+gv.classList.add('active');
+matchmaker.joinAvailableServer();
 resizeCanvas();
 updateHud();
 if (!state.running) {
@@ -408,14 +437,19 @@ state.running = true;
 requestAnimationFrame(loop);
 }
 }
-function exitGame() {
+function exitAllGames() {
+state.running = false;
+mbState.running = false;
+document.getElementById('gameView').style.display = 'none';
 document.getElementById('gameView').classList.remove('active');
+document.getElementById('minebloxView').style.display = 'none';
 document.getElementById('portalView').style.display = 'block';
 }
 function resizeCanvas() {
 const wrap = document.getElementById('arenaWrap');
-canvas.width = wrap.clientWidth;
-canvas.height = wrap.clientHeight;
+if (!wrap || !canvas) return;
+canvas.width = Math.max(320, wrap.clientWidth);
+canvas.height = Math.max(400, wrap.clientHeight);
 }
 window.addEventListener('resize', resizeCanvas);
 function loop() {
@@ -432,7 +466,7 @@ ctx.lineWidth = state.hasWalls ? 4 : 2;
 ctx.strokeRect(50, 210, 460, 290);
 ctx.fillStyle = '#38bdf8';
 ctx.font = 'bold 14px sans-serif';
-ctx.fillText("JAY'S BASE (CONVEYOR + ARMORY)", 62, 232);
+ctx.fillText(JAY'S BASE — SERVER #${matchmaker.activeServerId}, 62, 232);
 ctx.fillStyle = '#1e293b';
 ctx.fillRect(65, 245, 115, 25);
 if (state.upgraderLevel > 0) {
@@ -537,4 +571,116 @@ ctx.lineTo(ef.x + ef.fx * ef.range, ef.y + ef.fy * ef.range); ctx.stroke();
 if (ef.life <= 0) state.effects.splice(i, 1);
 }
 requestAnimationFrame(loop);
+}
+// ---------- MINEBLOX VOXEL SANDBOX ENGINE + CUSTOM LOADING SCREEN ----------
+const MB_BLOCKS = [
+{ id: 'Grass', color: '#22c55e', icon: '🟩' },
+{ id: 'Stone', color: '#64748b', icon: '🪨' },
+{ id: 'Wood', color: '#b45309', icon: '🪵' },
+{ id: 'Diamond', color: '#38bdf8', icon: '💎' },
+{ id: 'Neon', color: '#c8f53b', icon: '⚡' },
+{ id: 'Break', color: '#ef4444', icon: '⛏️' }
+];
+const mbState = {
+running: false,
+selectedBlock: 0,
+worldBlocks: {},
+player: { x: 200, y: 200 },
+friends: [{ name: 'Friend_Alex', x: 320, y: 240 }]
+};
+function launchMineblox() {
+document.getElementById('portalView').style.display = 'none';
+document.getElementById('gameView').style.display = 'none';
+const mbView = document.getElementById('minebloxView');
+mbView.style.display = 'flex';
+const loader = document.getElementById('mbLoadingScreen');
+const bar = document.getElementById('mbLoadBar');
+const status = document.getElementById('mbLoadStatus');
+loader.style.display = 'flex';
+bar.style.width = '10%';
+const steps = [
+{ pct: '35%', text: 'Building Biome Terrain & Lighting...' },
+{ pct: '70%', text: 'Connecting Multiplayer Friend Relay...' },
+{ pct: '100%', text: 'World Ready!' }
+];
+steps.forEach((st, idx) => {
+setTimeout(() => {
+bar.style.width = st.pct;
+status.textContent = st.text;
+if (idx === steps.length - 1) {
+setTimeout(() => {
+loader.style.display = 'none';
+startMinebloxWorld();
+}, 350);
+}
+}, (idx + 1) * 450);
+});
+}
+function joinMinebloxRoom() {
+const code = document.getElementById('mbRoomInput').value.trim().toUpperCase();
+if (!code) return showToast('Enter a friend room code first!');
+document.getElementById('mbRoomHud').textContent = 🌍 World: ${code} (2 Online);
+showToast(🌍 Joined Friend World: ${code});
+}
+function startMinebloxWorld() {
+const mbCanvas = document.getElementById('minebloxCanvas');
+const mbWrap = document.getElementById('mbWrap');
+mbCanvas.width = Math.max(320, mbWrap.clientWidth);
+mbCanvas.height = Math.max(400, mbWrap.clientHeight);
+const mctx = mbCanvas.getContext('2d');
+const hb = document.getElementById('mbHotbar');
+hb.innerHTML = '';
+MB_BLOCKS.forEach((b, i) => {
+const slot = document.createElement('div');
+slot.className = 'slot owned' + (mbState.selectedBlock === i ? ' active' : '');
+slot.innerHTML = <span class="slot-num">${i + 1}</span><span class="slot-icon">${b.icon}</span><span class="slot-name">${b.id}</span>;
+slot.onclick = () => { mbState.selectedBlock = i; startMinebloxWorld(); };
+hb.appendChild(slot);
+});
+mbCanvas.onmousedown = (e) => {
+const rect = mbCanvas.getBoundingClientRect();
+const gx = Math.floor((e.clientX - rect.left) / 36);
+const gy = Math.floor((e.clientY - rect.top) / 36);
+const key = ${gx},${gy};
+if (e.button === 2 || MB_BLOCKS[mbState.selectedBlock].id === 'Break') {
+delete mbState.worldBlocks[key];
+} else {
+mbState.worldBlocks[key] = MB_BLOCKS[mbState.selectedBlock].color;
+}
+};
+mbCanvas.oncontextmenu = e => e.preventDefault();
+if (!mbState.running) {
+mbState.running = true;
+function mbLoop() {
+if (!mbState.running) return;
+mctx.fillStyle = '#071318';
+mctx.fillRect(0, 0, mbCanvas.width, mbCanvas.height);
+mctx.strokeStyle = 'rgba(34, 197, 94, 0.14)';
+for (let x = 0; x < mbCanvas.width; x += 36) { mctx.beginPath(); mctx.moveTo(x, 0); mctx.lineTo(x, mbCanvas.height); mctx.stroke(); }
+for (let y = 0; y < mbCanvas.height; y += 36) { mctx.beginPath(); mctx.moveTo(0, y); mctx.lineTo(mbCanvas.width, y); mctx.stroke(); }
+Object.entries(mbState.worldBlocks).forEach(([coord, col]) => {
+const [gx, gy] = coord.split(',').map(Number);
+mctx.fillStyle = col;
+mctx.fillRect(gx * 36 + 1, gy * 36 + 1, 34, 34);
+});
+if (keys['w'] || keys['arrowup']) mbState.player.y -= 4;
+if (keys['s'] || keys['arrowdown']) mbState.player.y += 4;
+if (keys['a'] || keys['arrowleft']) mbState.player.x -= 4;
+if (keys['d'] || keys['arrowright']) mbState.player.x += 4;
+mbState.friends.forEach(f => {
+mctx.fillStyle = '#38bdf8';
+mctx.fillRect(f.x - 14, f.y - 14, 28, 28);
+mctx.fillStyle = '#fff';
+mctx.font = 'bold 11px sans-serif';
+mctx.fillText(f.name, f.x - 28, f.y - 20);
+});
+mctx.fillStyle = '#c8f53b';
+mctx.fillRect(mbState.player.x - 14, mbState.player.y - 14, 28, 28);
+mctx.fillStyle = '#fff';
+mctx.font = 'bold 11px sans-serif';
+mctx.fillText('Jay (You)', mbState.player.x - 22, mbState.player.y - 20);
+requestAnimationFrame(mbLoop);
+}
+requestAnimationFrame(mbLoop);
+}
 }
