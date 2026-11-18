@@ -32,7 +32,6 @@
       background-size: 100% 100%, 100% 100%, 38px 38px, 38px 38px;
     }
 
-    /* Clean Header */
     header {
       display: flex;
       align-items: center;
@@ -75,7 +74,6 @@
     }
     .search-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
 
-    /* Portal View */
     #portalView { max-width: 1150px; margin: 28px auto; padding: 0 20px 60px; }
 
     .social-bar {
@@ -130,7 +128,6 @@
     .badge-left { background: var(--lime); color: #050a18; padding: 5px 10px; }
     .badge-right { background: var(--purple); color: #fff; padding: 5px 10px; }
 
-    /* Fullscreen Game View */
     #gameView { display: none; position: fixed; inset: 0; background: #030712; z-index: 200; flex-direction: column; }
     #gameView.active { display: flex; }
 
@@ -154,7 +151,6 @@
     .arena-wrapper { position: relative; flex: 1; width: 100%; overflow: hidden; touch-action: none; }
     #tycoonCanvas { width: 100%; height: 100%; display: block; }
 
-    /* Hotbar */
     .hotbar {
       position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
       display: flex; gap: 6px; background: rgba(5, 10, 24, 0.85);
@@ -173,7 +169,6 @@
     .slot-icon { font-size: 20px; }
     .slot-name { font-size: 9px; font-weight: 800; text-align: center; margin-top: 2px; line-height: 1; }
 
-    /* Corner Chat Box */
     .chat-box {
       position: absolute; top: 10px; left: 10px; width: 280px; max-width: 65vw;
       background: rgba(5, 10, 24, 0.8); backdrop-filter: blur(6px);
@@ -195,7 +190,6 @@
       font-weight: 800; font-size: 11px; cursor: pointer;
     }
 
-    /* Mobile Touch Controls */
     .touch-stick {
       position: absolute; bottom: 86px; left: 20px; width: 104px; height: 104px;
       background: rgba(56, 189, 248, 0.14); border: 2px solid rgba(56, 189, 248, 0.4);
@@ -218,15 +212,14 @@
     .vc-btn { border-color: var(--cyan); color: var(--cyan); height: 44px; border-radius: 12px; }
     .vc-btn.active { background: #10b981; border-color: #10b981; color: #050a18; }
 
-    /* Modals */
     .overlay-modal {
       display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.84);
       backdrop-filter: blur(6px); z-index: 500; align-items: center; justify-content: center; padding: 16px;
     }
     .overlay-modal.open { display: flex; }
     .panel-card {
-background: #0b1224; border: 1.5px solid var(--cyan); border-radius: 16px;
-padding: 20px; width: 100%; max-width: 500px; max-height: 88vh; overflow-y: auto;
+      background: #0b1224; border: 1.5px solid var(--cyan); border-radius: 16px;
+      padding: 20px; width: 100%; max-width: 500px; max-height: 88vh; overflow-y: auto;
 box-shadow: 0 0 35px rgba(56, 189, 248, 0.35);
 }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
@@ -375,7 +368,6 @@ Public Community Scripts
 💾 Save Script
 Clear
 Make Public
-// ---------- PORTAL & SOCIAL HUB HELPERS ----------
 let toastTimeout;
 function showToast(msg) {
 const t = document.getElementById('toastBox');
@@ -411,7 +403,6 @@ row.appendChild(document.createTextNode(txt));
 feed.appendChild(row);
 feed.scrollTop = feed.scrollHeight;
 }
-// ---------- GAME STATE & WEAPONS ----------
 const WEAPONS = [
 { id: 'Fists', icon: '👊', cost: 0, dmg: 20, range: 55, color: '#38bdf8' },
 { id: 'Axe', icon: '🪓', cost: 150, dmg: 35, range: 70, color: '#22c55e' },
@@ -485,7 +476,6 @@ state.ownedWeapons = WEAPONS.map(w => w.id);
 renderHotbar();
 showToast('👑 All 8 Weapons & Abilities Unlocked!');
 }
-// ---------- UNFILTERED CHAT & SILENT OWNER COMMAND ----------
 function appendChat(sender, text, color = '#f8fafc') {
 const feed = document.getElementById('chatFeed');
 const line = document.createElement('div');
@@ -576,7 +566,6 @@ btn.textContent = state.vcOn ? '🎙️ VC ON' : '🎙️ VC OFF';
 btn.classList.toggle('active', state.vcOn);
 showToast(state.vcOn ? '🎙️ Voice Chat Mic Active' : '🎙️ Voice Chat Muted');
 }
-// ---------- BUILT-IN LUA / LUAU EXECUTOR ----------
 let currentExecTab = 'mine';
 function openExecutor() {
 if (!state.isOwner && !state.publicExecEnabled) {
@@ -714,10 +703,9 @@ try {
 fengari.load(envHeader + "\n" + userCode)();
 showToast('⚡ Lua Script Executed!');
 } catch (err) {
-showToast('❌ Lua Error: ' + err.message.split('\n'));
+showToast('❌ Lua Error: ' + err.message.split('\n')[0]);
 }
 }
-// ---------- 60 FPS TYCOON & COMBAT ENGINE ----------
 const canvas = document.getElementById('tycoonCanvas');
 const ctx = canvas.getContext('2d');
 const keys = {};
@@ -739,7 +727,7 @@ const knob = document.getElementById('stickKnob');
 stick.addEventListener('touchmove', e => {
 e.preventDefault();
 const rect = stick.getBoundingClientRect();
-const touch = e.touches;
+const touch = e.touches[0];
 const dx = touch.clientX - (rect.left + rect.width / 2);
 const dy = touch.clientY - (rect.top + rect.height / 2);
 const dist = Math.min(34, Math.hypot(dx, dy));
@@ -763,7 +751,7 @@ state.player.facingY = Math.sin(ang);
 useWeapon();
 });
 function useWeapon() {
-const w = WEAPONS.find(item => item.id === state.equipped) || WEAPONS;
+const w = WEAPONS.find(item => item.id === state.equipped) || WEAPONS[0];
 const p = state.player;
 state.effects.push({
 type: w.id, x: p.x, y: p.y, fx: p.facingX, fy: p.facingY,
@@ -815,17 +803,14 @@ ctx.strokeStyle = 'rgba(56, 189, 248, 0.1)';
 ctx.lineWidth = 1;
 for (let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
 for (let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
-// Jay's Base Platform
 ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-ctx.fillRect(50, 210, 46
-0, 290);
+ctx.fillRect(50, 210, 460, 290);
 ctx.strokeStyle = state.hasWalls ? '#c8f53b' : '#38bdf8';
 ctx.lineWidth = state.hasWalls ? 4 : 2;
 ctx.strokeRect(50, 210, 460, 290);
 ctx.fillStyle = '#38bdf8';
 ctx.font = 'bold 14px Outfit';
 ctx.fillText("JAY'S BASE (CONVEYOR + ARMORY)", 62, 232);
-// Conveyor & Laser Upgrader
 ctx.fillStyle = '#1e293b';
 ctx.fillRect(65, 245, 115, 25);
 if (state.upgraderLevel > 0) {
