@@ -9,7 +9,7 @@
 <body>
 
   <header>
-    <div class="brand" onclick="exitAllGames()">
+    <a href="index.html" class="brand" style="text-decoration:none;">
       <div class="pixel-logo">
         <svg class="crown-svg" viewBox="0 0 16 10" fill="none">
           <path d="M7 0H9V2H10V4H13V2H15V7H1V2H3V4H6V2H7V0ZM1 8H15V10H1V8Z" fill="#38bdf8"/>
@@ -17,7 +17,7 @@
         <span class="pixel-jay">JAY</span>
       </div>
       <span class="site-title">JAY GAME WEBSITE</span>
-    </div>
+    </a>
     <div class="search-box">
       <input type="text" id="searchInput" placeholder="Search games..." onkeyup="filterPortal()" />
       <span class="search-icon">🔍</span>
@@ -33,22 +33,25 @@
     </div>
 
     <section class="games-grid" id="portalGrid">
-      <div class="game-card playable" data-title="super power tycoon reborn" onclick="launchTycoon()">
+      <!-- Opens standalone tycoon.html page -->
+      <a href="tycoon.html" class="game-card playable" data-title="super power tycoon reborn" style="text-decoration:none; color:inherit;">
         <div class="thumb-box" style="background: linear-gradient(135deg, #0284c7, #7c3aed);">⚡</div>
         <div class="game-info">
           <h3>SUPER POWER TYCOON: REBORN</h3>
           <span class="play-pill">PLAY NOW</span>
         </div>
-      </div>
+      </a>
 
-      <div class="game-card playable" data-title="mineblox" onclick="launchMineblox()">
+      <!-- Opens standalone mineblox.html page -->
+      <a href="mineblox.html" class="game-card playable" data-title="mineblox" style="text-decoration:none; color:inherit;">
         <div class="thumb-box" style="background: linear-gradient(135deg, #16a34a, #0284c7);">⛏️</div>
         <div class="game-info">
           <h3>MINEBLOX</h3>
           <span class="play-pill">PLAY NOW</span>
         </div>
-      </div>
+      </a>
 
+      <!-- 4 Locked Mystery Games -->
       <div class="game-card locked" data-title="available soon" onclick="showToast('🔒 This mystery game is locked until release!')">
         <div class="thumb-box"><span class="mystery-q">?</span></div>
         <div class="game-info">
@@ -116,105 +119,7 @@
     </div>
   </div>
 
-  <!-- SUPER POWER TYCOON: REBORN VIEW -->
-  <div id="gameView">
-    <div class="game-topbar">
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <button class="top-btn" onclick="exitAllGames()">⬅ Portal</button>
-        <div class="stat-pill" id="cashHud">$100</div>
-        <div class="stat-pill" id="rebirthHud" style="color:#38bdf8;">Rebirths: 0</div>
-        <div class="stat-pill" id="serverHud" style="color:#a855f7; border-color:#a855f7;">🌐 Server #1 (3/12)</div>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button class="top-btn" onclick="simulateFullServerSpillover()" title="Test full server auto-spillover">⚡ Simulate Full Server</button>
-        <button class="top-btn accent" id="execOpenBtn" onclick="openExecutor()">&lt;/&gt; Lua Executor</button>
-        <button class="top-btn owner-btn" id="ownerOpenBtn" onclick="openOwnerPanel()">👑 Owner Panel</button>
-      </div>
-    </div>
-
-    <div class="arena-wrapper" id="arenaWrap">
-      <canvas id="tycoonCanvas"></canvas>
-
-      <div class="chat-box">
-        <div class="chat-messages" id="chatFeed">
-          <div class="chat-msg" style="color:#38bdf8;"><strong>[System]:</strong> Connected to Active Server! Step on glowing pads to build & unlock weapons.</div>
-        </div>
-        <div class="chat-input-row">
-          <input type="text" id="chatInput" placeholder="Chat here..." onkeydown="if(event.key==='Enter') sendChat()" />
-          <button onclick="sendChat()">Send</button>
-        </div>
-      </div>
-
-      <div class="touch-stick" id="touchStick"><div class="stick-knob" id="stickKnob"></div></div>
-      <div class="touch-actions">
-        <button class="action-btn vc-btn" id="vcBtn" onclick="toggleVC()">🎙️ VC OFF</button>
-        <button class="action-btn" onmousedown="useWeapon()" ontouchstart="event.preventDefault(); useWeapon()">ATTACK</button>
-      </div>
-
-      <div class="hotbar" id="hotbar"></div>
-    </div>
-  </div>
-
-  <!-- MINEBLOX CUSTOM LOADING SCREEN + VOXEL SANDBOX VIEW -->
-  <div id="minebloxView" style="display:none; position:fixed; inset:0; background:#040a14; z-index:210; flex-direction:column;">
-    <!-- Custom Animated Mineblox Loading Screen -->
-    <div id="mbLoadingScreen" style="position:absolute; inset:0; background:radial-gradient(circle at center, #0c2b1e 0%, #040a14 100%); z-index:30; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center;">
-      <div style="font-size:56px; margin-bottom:12px;">⛏️</div>
-      <h1 style="font-size:32px; font-weight:900; letter-spacing:3px; color:#c8f53b; margin-bottom:8px;">MINEBLOX ENGINE v2.4</h1>
-Generating Infinite Voxel Chunks & Multiplayer Session...
-
-
-
-⬅ Portal
-🌍 World: PUBLIC-1 (Online)
-
-
-
-Join Friend
-
-Controls: WASD / Arrows to Move • Click / Tap to Place Block • Right-Click / Mine Btn to Break
-
-
-
-👑 Owner Verification
-✕
-
-Enter Owner Passcode to unlock Jay Admin Panel v2:
-
-Unlock Owner Panel
-
-👑 JAY OWNER PANEL v2
-✕
-
-
-
-Kick
-Ban
-Unban
-Mute / Unmute
-
-
-+ $50K Cash
-+1 Rebirth
-Unlock All 8 Weapons
-Public Executor: ON
-
-
-Banned: None | Muted: None
-
-
-⚡ Lua / Luau Script Executor
-✕
-
-
-My Saved Scripts
-Public Community Scripts
-
-
-
-
-
-▶ Execute
-💾 Save Script
-Clear
-Make Public
+  <div class="toast" id="toastBox"></div>
+  <script src="script.js"></script>
+</body>
+</html>
