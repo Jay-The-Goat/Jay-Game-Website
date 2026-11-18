@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Super Power Tycoon: Reborn — Jay Game Website</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body onload="launchTycoon()">
+
+  <div id="gameView" class="active" style="display:flex;">
+    <div class="game-topbar">
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <a href="index.html" class="top-btn" style="text-decoration:none;">⬅ Portal</a>
+        <div class="stat-pill" id="cashHud">$100</div>
+        <div class="stat-pill" id="rebirthHud" style="color:#38bdf8;">Rebirths: 0</div>
+        <div class="stat-pill" id="serverHud" style="color:#a855f7; border-color:#a855f7;">🌐 Server #1 (4/12)</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="top-btn" onclick="simulateFullServerSpillover()">⚡ Simulate Full Server</button>
+        <button class="top-btn accent" id="execOpenBtn" onclick="openExecutor()">&lt;/&gt; Lua Executor</button>
+        <button class="top-btn owner-btn" id="ownerOpenBtn" onclick="openOwnerPanel()">👑 Owner Panel</button>
+      </div>
+    </div>
+
+    <div class="arena-wrapper" id="arenaWrap">
+      <canvas id="tycoonCanvas"></canvas>
+
+      <div class="chat-box">
+        <div class="chat-messages" id="chatFeed">
+          <div class="chat-msg" style="color:#38bdf8;"><strong>[System]:</strong> Connected to Active Server! Step on glowing pads to build & unlock weapons.</div>
+        </div>
+        <div class="chat-input-row">
+          <input type="text" id="chatInput" placeholder="Chat here..." onkeydown="if(event.key==='Enter') sendChat()" />
+          <button onclick="sendChat()">Send</button>
+        </div>
+      </div>
+
+      <div class="touch-stick" id="touchStick"><div class="stick-knob" id="stickKnob"></div></div>
+      <div class="touch-actions">
+        <button class="action-btn vc-btn" id="vcBtn" onclick="toggleVC()">🎙️ VC OFF</button>
+        <button class="action-btn" onmousedown="useWeapon()" ontouchstart="event.preventDefault(); useWeapon()">ATTACK</button>
+      </div>
+
+      <div class="hotbar" id="hotbar"></div>
+    </div>
+  </div>
+
+  <!-- Owner Passcode Modal -->
+  <div class="overlay-modal" id="passModal">
+    <div class="panel-card" style="max-width:360px;">
+      <div class="panel-header">
+        <h3>👑 Owner Verification</h3>
+        <button class="close-x" onclick="closeModal('passModal')">✕</button>
+      </div>
+      <p style="font-size:13px; color:#94a3b8; margin-bottom:10px;">Enter Owner Passcode to unlock Jay Admin Panel v2:</p>
+      <input type="password" id="ownerPassInput" class="field-input" placeholder="Enter passcode..." onkeydown="if(event.key==='Enter') verifyOwner()" />
+      <button class="cmd-btn lime" style="width:100%;" onclick="verifyOwner()">Unlock Owner Panel</button>
+    </div>
+  </div>
+
+  <!-- Owner Admin Panel Modal -->
+  <div class="overlay-modal" id="ownerModal">
+    <div class="panel-card">
+      <div class="panel-header">
+        <h3>👑 JAY OWNER PANEL v2</h3>
+        <button class="close-x" onclick="closeModal('ownerModal')">✕</button>
+      </div>
+      <input type="text" id="targetPlayerInput" class="field-input" placeholder="Target Username (e.g., ArenaBot_1)..." />
+      <div class="btn-row">
+        <button class="cmd-btn red" onclick="adminAction('kick')">Kick</button>
+        <button class="cmd-btn red" onclick="adminAction('ban')">Ban</button>
+        <button class="cmd-btn green" onclick="adminAction('unban')">Unban</button>
+        <button class="cmd-btn blue" onclick="adminAction('mute')">Mute / Unmute</button>
+      </div>
+      <div class="btn-row">
+        <button class="cmd-btn lime" onclick="state.cash += 50000; updateHud(); showToast('+$50,000 Cash Added!')">+ $50K Cash</button>
+        <button class="cmd-btn purple" onclick="state.rebirths += 1; updateHud(); showToast('+1 Rebirth Added!')">+1 Rebirth</button>
+        <button class="cmd-btn blue" onclick="unlockAllWeapons()">Unlock All 8 Weapons</button>
+        <button class="cmd-btn" id="togglePublicExecBtn" onclick="togglePublicExecutor()">Public Executor: ON</button>
+      </div>
+      <div style="font-size:12px; color:#94a3b8; border-top:1px solid #1e293b; padding-top:10px;" id="banListDisplay">
+        Banned: None | Muted: None
+      </div>
+    </div>
+  </div>
+
+  <!-- Lua / Luau Script Executor Modal -->
+  <div class="overlay-modal" id="execModal">
+    <div class="panel-card" style="max-width:560px;">
+      <div class="panel-header">
+        <h3>⚡ Lua / Luau Script Executor</h3>
+        <button class="close-x" onclick="closeModal('execModal')">✕</button>
+      </div>
+      <div class="btn-row">
+        <button class="cmd-btn blue" id="tabMyScripts" onclick="switchExecTab('mine')">My Saved Scripts</button>
+        <button class="cmd-btn" id="tabPublicScripts" onclick="switchExecTab('public')">Public Community Scripts</button>
+      </div>
+      <input type="text" id="scriptTitleInput" class="field-input" placeholder="Script Name (e.g., Max Cash + All Weapons)" />
+      <textarea id="luaCodeInput" class="lua-editor" placeholder="-- Write or paste Lua / Luau code here...
+game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 14
+game.Players.LocalPlayer.leaderstats.Cash.Value = 999999
+UnlockAllWeapons()"></textarea>
+      <div class="btn-row" style="align-items:center; justify-content:space-between;">
+        <div style="display:flex; gap:8px;">
+          <button class="cmd-btn lime" onclick="executeLua(document.getElementById('luaCodeInput').value)">▶ Execute</button>
+          <button class="cmd-btn purple" onclick="saveLuaScript()">💾 Save Script</button>
+          <button class="cmd-btn" onclick="document.getElementById('luaCodeInput').value=''">Clear</button>
+        </div>
+        <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" id="isPublicCheck" /> Make Public
+        </label>
+      </div>
+      <div id="scriptsListContainer" style="margin-top:12px; border-top:1px solid #1e293b; padding-top:12px;"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toastBox"></div>
+  <script src="script.js"></script>
+</body>
+</html>
